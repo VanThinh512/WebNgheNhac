@@ -1,0 +1,188 @@
+﻿@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - TunePhere</title>
+    <link rel="stylesheet" href="~/css/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="~/js/loginheader.js"></script>
+</head>
+<body>
+    <div class="container sign-in-mode">
+        <div class="particle"></div>
+        <div class="forms-container">
+            <div class="signin-signup">
+                <form id="account" method="post" class="sign-in-form">
+                    <h2 class="title">Đăng nhập</h2>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="input-field">
+                        <i class="fas fa-user"></i>
+                        <input asp-for="Input.Email" type="email" placeholder="Email" />
+                    </div>
+                    <div class="input-field">
+                        <i class="fas fa-lock"></i>
+                        <input asp-for="Input.Password" type="password" placeholder="Mật khẩu" />
+                    </div>
+
+                    <div class="checkbox-field">
+                        <input asp-for="Input.RememberMe" type="checkbox" />
+                        <label asp-for="Input.RememberMe">Ghi nhớ đăng nhập?</label>
+                    </div>
+
+                    <button id="login-submit" type="submit" class="btn solid">
+                        <i class="fas fa-headphones-alt"></i>
+                        Đăng nhập
+                    </button>
+
+                    <p class="social-text">Hoặc đăng nhập với</p>
+                    <div class="social-media">
+                        @{
+                            if ((Model.ExternalLogins?.Count ?? 0) > 0)
+                            {
+                                <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                                    @foreach (var provider in Model.ExternalLogins!)
+                                    {
+                                        if (provider.Name.ToLower().Contains("facebook"))
+                                        {
+                                            <a href="javascript:void(0)" onclick="document.getElementById('provider-@provider.Name').click()" class="social-icon facebook">
+                                                <i class="fab fa-facebook-f"></i>
+                                            </a>
+                                            <button type="submit" id="provider-@provider.Name" name="provider" value="@provider.Name" style="display:none"></button>
+                                        }
+                                        else if (provider.Name.ToLower().Contains("google"))
+                                        {
+                                            <a href="javascript:void(0)" onclick="document.getElementById('provider-@provider.Name').click()" class="social-icon google">
+                                                <i class="fab fa-google"></i>
+                                            </a>
+                                            <button type="submit" id="provider-@provider.Name" name="provider" value="@provider.Name" style="display:none"></button>
+                                        }
+                                    }
+                                </form>
+                            }
+                            else
+                            {
+                                <a href="#" class="social-icon facebook">
+                                    <i class="fab fa-facebook-f"></i>
+                                </a>
+                                <a href="#" class="social-icon google">
+                                    <i class="fab fa-google"></i>
+                                </a>
+                            }
+                        }
+                    </div>
+                </form>
+
+                <form id="registerForm" asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="sign-up-form">
+                    <h2 class="title">Đăng ký</h2>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="input-field">
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="Input.FullName" placeholder="Họ tên" required />
+                    </div>
+                    <div class="input-field">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="Input.Email" placeholder="Email" required />
+                    </div>
+                    <div class="input-field">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="Input.Password" placeholder="Mật khẩu" required />
+                    </div>
+                    <div class="input-field">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="Input.ConfirmPassword" placeholder="Xác nhận mật khẩu" required />
+                    </div>
+
+                    <button id="sign-in-btn" class="btn transparent">
+                        <i class="fas fa-headphones-alt"></i> Đăng Nhập
+                    </button>
+
+                    <p class="social-text">Hoặc đăng ký với</p>
+                    <div class="social-media">
+                        @{
+                            if ((Model.ExternalLogins?.Count ?? 0) > 0)
+                            {
+                                <form id="external-account-register" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                                    @foreach (var provider in Model.ExternalLogins!)
+                                    {
+                                        if (provider.Name.ToLower().Contains("facebook"))
+                                        {
+                                            <a href="javascript:void(0)" onclick="document.getElementById('provider-register-@provider.Name').click()" class="social-icon facebook">
+                                                <i class="fab fa-facebook-f"></i>
+                                            </a>
+                                            <button type="submit" id="provider-register-@provider.Name" name="provider" value="@provider.Name" style="display:none"></button>
+                                        }
+                                        else if (provider.Name.ToLower().Contains("google"))
+                                        {
+                                            <a href="javascript:void(0)" onclick="document.getElementById('provider-register-@provider.Name').click()" class="social-icon google">
+                                                <i class="fab fa-google"></i>
+                                            </a>
+                                            <button type="submit" id="provider-register-@provider.Name" name="provider" value="@provider.Name" style="display:none"></button>
+                                        }
+                                    }
+                                </form>
+                            }
+                            else
+                            {
+                                <a href="#" class="social-icon facebook">
+                                    <i class="fab fa-facebook-f"></i>
+                                </a>
+                                <a href="#" class="social-icon google">
+                                    <i class="fab fa-google"></i>
+                                </a>
+                            }
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="panels-container">
+            <div class="panel left-panel">
+                <div class="content">
+                    <h3>Chưa có tài khoản? <i class="fas fa-music"></i></h3>
+                    <p>Hãy đăng ký ngay để trải nghiệm thế giới âm nhạc tuyệt vời cùng TunePhere!</p>
+                    <button onclick="animateThenRedirect('/Identity/Account/Register')" class="btn transparent">
+                        <i class="fas fa-headphones-alt"></i> Đăng ký
+                    </button>
+                </div>
+                <img src="~/img/log.svg" class="image" alt="" />
+            </div>
+
+            <div class="panel right-panel">
+                <div class="content">
+                    <h3>Đã có tài khoản? <i class="fas fa-music"></i></h3>
+                    <p>Đăng nhập ngay để tiếp tục trải nghiệm âm nhạc cùng TunePhere!</p>
+                    <button id="sign-in-btn" class="btn transparent">
+                        <i class="fas fa-headphones-alt"></i> Đăng Nhập
+                    </button>
+                </div>
+                <img src="~/img/register.svg" class="image" alt="" />
+            </div>
+        </div>
+
+        <div class="music-notes"></div>
+        <div class="equalizer">
+            @for (int i = 0; i < 5; i++)
+            {
+                <div class="bar"></div>
+            }
+        </div>
+    </div>
+
+    <script src="~/js/login.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

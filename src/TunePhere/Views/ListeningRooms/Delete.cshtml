@@ -1,0 +1,68 @@
+﻿@model TunePhere.Models.ListeningRoom
+
+@{
+    ViewData["Title"] = "Xóa Phòng Nghe Nhạc";
+}
+
+<link rel="stylesheet" href="~/css/listeningroom-delete.css?v=@DateTime.Now.Ticks" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="tunephere-container">
+    <div class="tunephere-breadcrumb">
+        <a asp-action="Index">
+            <i class="fas fa-headphones-alt me-1"></i>
+            <span>Phòng Nghe Nhạc</span>
+        </a>
+        <span class="divider">/</span>
+        <span class="current">Xóa Phòng</span>
+    </div>
+
+    <div class="tunephere-delete-container">
+        <div class="tunephere-card">
+            <div class="tunephere-card-body text-center">
+                <div class="tunephere-warning-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+
+                <h2 class="tunephere-card-title">Xác Nhận Xóa Phòng</h2>
+
+                <p class="tunephere-delete-text">
+                    Bạn có chắc chắn muốn xóa phòng "<strong>@Model.Title</strong>"?<br>
+                    Hành động này không thể hoàn tác.
+                </p>
+
+                <div class="tunephere-alert">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Lưu ý: Tất cả người tham gia sẽ bị xóa khỏi phòng.</span>
+                </div>
+
+                <div class="tunephere-room-info">
+                    <div class="tunephere-info-item">
+                        <span class="tunephere-info-label">Người tạo</span>
+                        <p class="tunephere-info-value">@Model.Creator?.UserName</p>
+                    </div>
+                    <div class="tunephere-info-item">
+                        <span class="tunephere-info-label">Thời gian tạo</span>
+                        <p class="tunephere-info-value">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+                    <div class="tunephere-info-item">
+                        <span class="tunephere-info-label">Số người tham gia</span>
+                        <p class="tunephere-info-value">@(Model.Participants?.Count ?? 0) người</p>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" class="tunephere-actions">
+                    <input type="hidden" asp-for="RoomId" />
+                    <button type="submit" class="tunephere-btn tunephere-btn-danger">
+                        <i class="fas fa-trash"></i>
+                        <span>Xóa Phòng</span>
+                    </button>
+                    <a asp-action="Index" class="tunephere-btn tunephere-btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Quay Lại</span>
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

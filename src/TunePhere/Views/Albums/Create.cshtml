@@ -1,0 +1,295 @@
+﻿@model TunePhere.Models.Album
+
+@{
+    ViewData["Title"] = "Tạo Album Mới";
+}
+
+<link rel="stylesheet" href="~/css/album-create.css?v=@DateTime.Now.Ticks" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+    /* Đảm bảo input ẩn không gây trở ngại cho việc click */
+    .hidden-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* Cập nhật style cho spotify-song-info để chứa cả trường thể loại */
+    .spotify-song-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .spotify-song-file {
+        flex-basis: 100%;
+    }
+
+    .spotify-song-title {
+        flex: 3;
+    }
+
+    .spotify-song-genre {
+        flex: 2;
+    }
+</style>
+
+<div class="spotify-create-container">
+    <div class="spotify-create-header">
+        <div class="header-left">
+            <a href="@Url.Action("Index", "Albums")" class="spotify-back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1>Tạo Album Mới</h1>
+        </div>
+    </div>
+
+    <div class="spotify-create-content">
+        <form asp-action="Create" method="post" enctype="multipart/form-data" class="spotify-form">
+            <div asp-validation-summary="ModelOnly" class="spotify-error"></div>
+
+            <div class="spotify-form-layout">
+                <div class="spotify-image-upload">
+                    <div class="spotify-album-cover">
+                        <img id="coverPreview" src="/images/album-placeholder.jpg" alt="Album Cover" />
+                        <div class="spotify-image-overlay">
+                            <i class="fas fa-camera"></i>
+                            <span>Chọn ảnh bìa</span>
+                        </div>
+                    </div>
+                    <input type="file" id="ImageFile" name="ImageFile" class="hidden-input" accept="image/*" required />
+                    <div class="spotify-upload-hint">Click vào ảnh để thay đổi</div>
+                </div>
+
+                <div class="spotify-form-fields">
+                    <div class="spotify-form-group">
+                        <label asp-for="AlbumName" class="spotify-label">Tên Album</label>
+                        <input asp-for="AlbumName" class="spotify-input" placeholder="Tên album của bạn" required />
+                        <span asp-validation-for="AlbumName" class="spotify-error"></span>
+                    </div>
+
+                    <div class="spotify-form-group">
+                        <label asp-for="AlbumDescription" class="spotify-label">Mô tả</label>
+                        <textarea asp-for="AlbumDescription" class="spotify-textarea" rows="3"
+                                  placeholder="Mô tả ngắn về album của bạn..."></textarea>
+                        <span asp-validation-for="AlbumDescription" class="spotify-error"></span>
+                    </div>
+
+                    <div class="spotify-form-group">
+                        <label asp-for="ReleaseDate" class="spotify-label">Ngày phát hành</label>
+                        <input asp-for="ReleaseDate" type="date" class="spotify-input" required />
+                        <span asp-validation-for="ReleaseDate" class="spotify-error"></span>
+                    </div>
+
+                    <div class="spotify-form-group">
+                        <label asp-for="ArtistId" class="spotify-label">Nghệ sĩ</label>
+                        @if (ViewBag.Artists != null && ViewBag.Artists.Count > 0)
+                        {
+                            var artist = ViewBag.Artists[0];
+                            <input type="hidden" asp-for="ArtistId" value="@artist.ArtistId" />
+                            <input type="text" class="spotify-input" value="@artist.ArtistName" readonly />
+                        }
+                        else
+                        {
+                            <p class="spotify-error">Không tìm thấy thông tin nghệ sĩ</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="spotify-songs-section">
+                <div class="spotify-section-header">
+                    <h2>Danh sách bài hát</h2>
+                    <button type="button" class="spotify-add-button" onclick="addSongRow()">
+                        <i class="fas fa-plus"></i>
+                        <span>Thêm bài hát</span>
+                    </button>
+                </div>
+
+                <div class="spotify-songs-list" id="songsList">
+                    <!-- Các bài hát sẽ được thêm vào đây -->
+                </div>
+
+                <div class="spotify-songs-summary">
+                    <div class="spotify-summary-item">
+                        <span>Số bài hát</span>
+                        <span id="totalSongs">0</span>
+                        <input type="hidden" asp-for="numberSongs" id="numberSongs" />
+                    </div>
+                    <div class="spotify-summary-item">
+                        <span>Tổng thời lượng</span>
+                        <span id="totalDuration">0:00</span>
+                        <input type="hidden" asp-for="Time" id="totalTime" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="spotify-form-actions">
+                <button type="submit" class="spotify-primary-button">
+                    <span>Tạo Album</span>
+                </button>
+                @if (ViewBag.Artists != null && ViewBag.Artists.Count > 0)
+                {
+                    var artist = ViewBag.Artists[0];
+                    <a href="@Url.Action("Index", "Albums", new { artistId = artist.ArtistId })" class="spotify-secondary-button">Hủy</a>
+                }
+                else
+                {
+                    <a href="@Url.Action("Index", "Home")" class="spotify-secondary-button">Hủy</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Preview ảnh bìa album
+        document.getElementById('ImageFile').addEventListener('change', function (e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('coverPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Chỉ giữ lại một event listener cho việc tải ảnh album
+        window.addEventListener('DOMContentLoaded', function() {
+            // Xử lý upload ảnh album (cần thiết vì không có thuộc tính for/id)
+            const albumCover = document.querySelector('.spotify-album-cover');
+            const imageInput = document.getElementById('ImageFile');
+
+            albumCover.addEventListener('click', function() {
+                imageInput.click();
+            });
+
+            // Khởi tạo các biến
+            const songCount = 0;
+
+            // Thêm bài hát mẫu khi trang được tải
+            if(document.getElementById('songsList').children.length === 0) {
+                setTimeout(function() {
+                    addSongRow();
+                }, 500);
+            }
+        });
+
+        let songCount = 0;
+
+        function addSongRow() {
+            const songsList = document.getElementById('songsList');
+            const songRow = document.createElement('div');
+            const fileId = 'song-file-' + Date.now(); // Tạo ID duy nhất cho input file
+            songRow.className = 'spotify-song-row';
+            songRow.innerHTML = `
+                <div class="spotify-song-number">${songsList.children.length + 1}</div>
+                <div class="spotify-song-info">
+                    <div class="spotify-song-file">
+                        <input type="file" name="SongFiles" id="${fileId}" class="song-file spotify-file-input" accept="audio/*" required onchange="handleSongFile(this)" />
+                        <label for="${fileId}" class="spotify-file-label">Chọn file nhạc</label>
+                    </div>
+                    <div class="spotify-song-title">
+                        <input type="text" name="SongTitles" class="spotify-input" placeholder="Tên bài hát" required />
+                    </div>
+                    <div class="spotify-song-genre">
+                        <select name="SongGenres" class="spotify-input">
+                            <option value="">Chọn thể loại (không bắt buộc)</option>
+                            <option value="Pop">Pop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Hip Hop">Hip Hop</option>
+                            <option value="R&B">R&B</option>
+                            <option value="Jazz">Jazz</option>
+                            <option value="Classical">Classical</option>
+                            <option value="Electronic">Electronic</option>
+                            <option value="Folk">Folk</option>
+                            <option value="Country">Country</option>
+                            <option value="Other">Khác</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="spotify-song-duration">
+                    <span>0:00</span>
+                </div>
+                <button type="button" class="spotify-remove-button" onclick="removeSongRow(this)">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            songsList.appendChild(songRow);
+
+            // Bỏ event listener thêm vào để tránh trigger click hai lần
+            // Label đã có thuộc tính for kết nối với input
+
+            songCount++;
+            updateSongCount();
+            updateTrackNumbers();
+        }
+
+        function removeSongRow(button) {
+            button.closest('.spotify-song-row').remove();
+            updateSongCount();
+            updateTrackNumbers();
+        }
+
+        function updateTrackNumbers() {
+            const songRows = document.querySelectorAll('.spotify-song-row');
+            songRows.forEach((row, index) => {
+                row.querySelector('.spotify-song-number').textContent = index + 1;
+            });
+        }
+
+        function handleSongFile(input) {
+            const file = input.files[0];
+            if (file) {
+                const fileName = file.name.split('.').slice(0, -1).join('.');
+                const titleInput = input.closest('.spotify-song-info').querySelector('.spotify-song-title input');
+                if (!titleInput.value) {
+                    titleInput.value = fileName;
+                }
+
+                const fileLabel = input.nextElementSibling;
+                fileLabel.textContent = file.name;
+                fileLabel.classList.add('file-selected');
+
+                const audio = new Audio(URL.createObjectURL(file));
+                audio.onloadedmetadata = function() {
+                    const duration = Math.round(audio.duration);
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = duration % 60;
+                    const durationText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    input.closest('.spotify-song-row').querySelector('.spotify-song-duration span').textContent = durationText;
+                    updateTotalDuration();
+                };
+            }
+        }
+
+        function updateSongCount() {
+            const totalSongs = document.querySelectorAll('.spotify-song-row').length;
+            document.getElementById('totalSongs').textContent = totalSongs;
+            document.getElementById('numberSongs').value = totalSongs;
+        }
+
+        function updateTotalDuration() {
+            let totalSeconds = 0;
+            document.querySelectorAll('.spotify-song-duration span').forEach(span => {
+                const [minutes, seconds] = span.textContent.split(':').map(Number);
+                totalSeconds += minutes * 60 + seconds;
+            });
+
+            const totalMinutes = Math.floor(totalSeconds / 60);
+            const remainingSeconds = totalSeconds % 60;
+            document.getElementById('totalDuration').textContent =
+                `${totalMinutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            document.getElementById('totalTime').value = totalMinutes;
+        }
+    </script>
+}

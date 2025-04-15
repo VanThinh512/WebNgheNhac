@@ -1,0 +1,115 @@
+﻿@model TunePhere.Models.ListeningRoom
+
+@{
+    ViewData["Title"] = "Tạo Phòng Nghe Nhạc";
+}
+
+<link rel="stylesheet" href="~/css/listeningRoom.css" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<div class="listening-room">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-white">
+                    <i class="fas fa-headphones-alt me-1"></i>Phòng Nghe Nhạc
+                </a>
+            </li>
+            <li class="breadcrumb-item active text-muted">Tạo Phòng Mới</li>
+        </ol>
+    </nav>
+
+    <div class="room-form">
+        <div class="text-center mb-4">
+            <h2>
+                <i class="fas fa-music me-2"></i>Tạo Phòng Nghe Nhạc
+            </h2>
+            <p class="text-muted">Tạo không gian âm nhạc của riêng bạn</p>
+        </div>
+
+        <form asp-action="Create" class="needs-validation" novalidate>
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Lỗi!</strong>
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                </div>
+            }
+
+            <div class="form-group">
+                <label asp-for="Title" class="form-label">
+                    <i class="fas fa-heading me-1"></i>Tên Phòng
+                </label>
+                <input asp-for="Title" class="form-control" placeholder="Nhập tên phòng nghe nhạc..." required />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CurrentSongId" class="form-label">
+                    <i class="fas fa-play me-1"></i>Bài Hát Hiện Tại
+                </label>
+                <select asp-for="CurrentSongId" class="form-control song-select" required
+                        asp-items="ViewBag.CurrentSongId">
+                    <option value="">-- Chọn bài hát --</option>
+                </select>
+                <span asp-validation-for="CurrentSongId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <div class="form-switch">
+                    <input asp-for="IsActive" class="switch-input" type="checkbox" checked />
+                    <label asp-for="IsActive" class="form-label mb-0">Kích Hoạt Phòng</label>
+                </div>
+                <span asp-validation-for="IsActive" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex gap-3 mt-4">
+                <button type="submit" class="btn-action btn-join flex-grow-1">
+                    <i class="fas fa-plus-circle"></i>
+                    Tạo Phòng
+                </button>
+                <a asp-action="Index" class="btn-action btn-details">
+                    <i class="fas fa-arrow-left"></i>
+                    Quay Lại
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <script>
+        // Kích hoạt validation Bootstrap
+        (function () {
+            'use strict'
+            var forms = document.querySelectorAll('.needs-validation')
+            Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+        })()
+
+        // Khởi tạo Select2 cho dropdown chọn bài hát
+        $(document).ready(function() {
+            $('.song-select').select2({
+                placeholder: "Tìm kiếm bài hát...",
+                allowClear: true,
+                language: {
+                    noResults: function() {
+                        return "Không tìm thấy bài hát";
+                    }
+                }
+            });
+        });
+    </script>
+}

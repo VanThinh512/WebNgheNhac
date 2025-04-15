@@ -1,0 +1,109 @@
+@model TunePhere.Models.Playlist
+@using System.Security.Claims;
+
+@{
+    ViewData["Title"] = "Tạo Playlist Mới";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/playlist.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<div class="create-playlist-page">
+    <div class="page-header">
+        <a asp-action="Index" class="back-btn">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <h1>Tạo Playlist Mới</h1>
+    </div>
+
+    <div class="create-form-container">
+        <div class="playlist-preview">
+            <div class="playlist-artwork">
+                <div class="default-artwork">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div class="artwork-overlay">
+                    <label for="ImageFile" class="upload-btn">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>Chọn ảnh bìa</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <form asp-action="Create" class="create-form" enctype="multipart/form-data" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <input type="hidden" asp-for="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+            <input type="hidden" asp-for="CreatedAt" value="@DateTime.Now" />
+            <input type="file" id="ImageFile" name="ImageFile" accept="image/*" class="hidden" />
+
+            <div class="form-group">
+                <label asp-for="Title">Tên playlist</label>
+                <input asp-for="Title" class="form-control" placeholder="Nhập tên playlist" required maxlength="200" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Description">Mô tả</label>
+                <textarea asp-for="Description" class="form-control" placeholder="Nhập mô tả playlist" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input asp-for="IsPublic" type="checkbox" checked />
+                    <span class="checkbox-text">Công khai playlist</span>
+                </label>
+                <p class="help-text">Playlist công khai sẽ hiển thị trong hồ sơ của bạn và có thể được tìm thấy bởi người khác</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="save-btn">
+                    <i class="fa-solid fa-plus"></i>
+                    Tạo Playlist
+                </button>
+                <a asp-action="Index" class="cancel-btn">
+                    Hủy
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Xử lý preview ảnh khi chọn file
+        document.getElementById('ImageFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'playlist-image';
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    
+                    const defaultArtwork = document.querySelector('.default-artwork');
+                    defaultArtwork.parentNode.replaceChild(img, defaultArtwork);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Xử lý form submit
+        document.querySelector('.create-form').addEventListener('submit', function(e) {
+            const titleInput = document.querySelector('input[name="Title"]');
+            if (!titleInput.value.trim()) {
+                e.preventDefault();
+                alert('Vui lòng nhập tên playlist');
+                titleInput.focus();
+            }
+        });
+    </script>
+}

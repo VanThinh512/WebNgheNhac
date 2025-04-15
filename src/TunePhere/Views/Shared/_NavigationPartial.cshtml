@@ -1,0 +1,289 @@
+@inject AppDbContext DbContext
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
+
+<link rel="stylesheet" href="~/css/navigation.css">
+
+<nav class="navbar fixed-top">
+    <!-- Phần bên trái: Logo, biểu tượng và thanh tìm kiếm -->
+    <div class="navbar-left">
+        <a href="/" class="logo">
+            <img src="~/images/profiles/download.png" alt="TunePhere Logo" />
+        </a>
+        <a href="/" class="home-button">
+            <i class="fas fa-home"></i>
+        </a>
+        <div class="search-container">
+            <form asp-controller="Search" asp-action="Index" method="get" class="search-bar">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" name="searchTerm" placeholder="Tìm kiếm bài hát, nghệ sĩ hoặc album..." autocomplete="off" />
+                <div class="search-suggestions-dropdown">
+                    <div class="suggestions-content">
+                        <div class="suggestions-section artists-section">
+                            <h3>Nghệ sĩ</h3>
+                            <div class="suggestions-list" id="artistSuggestions"></div>
+                        </div>
+                        <div class="suggestions-section songs-section">
+                            <h3>Bài hát</h3>
+                            <div class="suggestions-list" id="songSuggestions"></div>
+                        </div>
+                        <div class="suggestions-section albums-section">
+                            <h3>Album</h3>
+                            <div class="suggestions-list" id="albumSuggestions"></div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Phần bên phải: Liên kết và nút -->
+    <div class="navbar-right">
+        <a href="@Url.Action("Index", "ListeningRooms")" class="nav-link">Phòng Nhạc</a>
+        <a href="/PlayHistories" class="nav-link">
+            <i class="fas fa-history"></i> Lịch sử nghe
+        </a>
+        <a href="#" class="nav-link download-link">
+            <i class="fas fa-download"></i> Tải xuống
+        </a>
+        <div class="vertical-line"></div>
+
+        @if (SignInManager.IsSignedIn(User))
+        {
+            var user = await UserManager.GetUserAsync(User);
+            var isArtist = user != null ? await UserManager.IsInRoleAsync(user, "Artist") : false;
+            var admin = user != null ? await UserManager.IsInRoleAsync(user, "Administrator") : false;
+
+            <div class="user-menu-container">
+                <div class="user-menu-button">
+                    <div class="user-avatar">
+                        @if (isArtist && user != null)
+                        {
+                            // Lấy thông tin nghệ sĩ từ database
+                            var artist = DbContext.Artists.FirstOrDefault(a => a.userId == user.Id);
+
+                            @if (artist != null && !string.IsNullOrEmpty(artist.ImageUrl))
+                            {
+                                <img src="@artist.ImageUrl" alt="Artist Profile" class="rounded-avatar" />
+                            }
+                            else if (user != null && !string.IsNullOrEmpty(user.ImageUrl))
+                            {
+                                <img src="@user.ImageUrl" alt="Profile" class="rounded-avatar" />
+                            }
+                            else
+                            {
+                                <i class="fas fa-music"></i>
+                            }
+                        }
+                        else
+                        {
+                            @if (user != null && !string.IsNullOrEmpty(user.ImageUrl))
+                            {
+                                <img src="@user.ImageUrl" alt="Profile" class="rounded-avatar" />
+                            }
+                            else
+                            {
+                                <i class="fas fa-user-circle"></i>
+                            }
+                        }
+                    </div>
+                    <span class="user-name">
+                        @if (isArtist && user != null)
+                        {
+                            var artist = DbContext.Artists.FirstOrDefault(a => a.userId == user.Id);
+                            @(artist != null ? artist.ArtistName : (user != null ? user.FullName : ""))
+                        }
+                        else
+                        {
+                            @(user != null ? user.FullName : "")
+                        }
+                    </span>
+                    <i class="fas fa-caret-down"></i>
+                </div>
+                <div class="user-dropdown-menu">
+                    <nav class="nav-menu">
+                        @if (isArtist)
+                        {
+                            <a href="/Artists/Dashboard" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")">
+                                <i class="fas fa-chart-line"></i>
+                                Bảng điều khiển
+                            </a>
+                            <a href="/Albums/Create">
+                                <i class="fas fa-plus-circle"></i>
+                                Tạo album mới
+                            </a>
+                            <a href="/Songs/Create">
+                                <i class="fas fa-upload"></i>
+                                Tải bài hát lên
+                            </a>
+                            <a href="/Artists/Profile">
+                                <i class="fas fa-user"></i>
+                                Trang nghệ sĩ
+                            </a>
+
+                            <hr>
+                        }
+                        else if (admin){
+                            <a href="/Admin/index" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")">
+                                <i class="fas fa-chart-line"></i>
+                                Bảng điều khiển
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="/Users/Details">
+                                <i class="fas fa-user"></i>
+                                Hồ sơ cá nhân
+                            </a>
+                            <a href="/ArtistRegistration/Register">
+                                <i class="fas fa-music"></i>
+                                Đăng ký nghệ sĩ
+                            </a>
+
+                            <hr>
+                        }
+
+                        <a href="/Identity/Account/ChangePassword">
+                            <i class="fas fa-key"></i>
+                            Đổi mật khẩu
+                        </a>
+                        <a href="/Playlists">
+                            <i class="fas fa-list"></i>
+                            Playlist của tôi
+                        </a>
+                        <a href="/UserFavoriteSongs">
+                            <i class="fas fa-heart"></i>
+                            Bài hát yêu thích
+                        </a>
+
+                        <hr>
+
+                        <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
+                            <button type="submit" class="logout-button">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Đăng xuất
+                            </button>
+                        </form>
+                    </nav>
+                </div>
+            </div>
+        }
+        else
+        {
+            <a href="/Identity/Account/Register" class="nav-button signup">Đăng ký</a>
+            <a href="/Identity/Account/Login" class="nav-button login">Đăng nhập</a>
+        }
+    </div>
+</nav>
+<script>
+     document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.querySelector('.search-bar input');
+        const suggestionsDropdown = document.querySelector('.search-suggestions-dropdown');
+        let debounceTimer;
+
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(debounceTimer);
+            const searchTerm = e.target.value.trim();
+
+            if (searchTerm.length < 2) {
+                suggestionsDropdown.style.display = 'none';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(searchTerm);
+            }, 300);
+        });
+
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2) {
+                suggestionsDropdown.style.display = 'block';
+            }
+        });
+
+        // Đóng dropdown khi click ra ngoài
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                suggestionsDropdown.style.display = 'none';
+            }
+        });
+
+        function fetchSuggestions(searchTerm) {
+            fetch(`/api/search/suggestions?term=${encodeURIComponent(searchTerm)}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateSuggestions(data);
+                    suggestionsDropdown.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching suggestions:', error);
+                });
+        }
+
+        function updateSuggestions(data) {
+            // Cập nhật phần nghệ sĩ
+            const artistsList = document.getElementById('artistSuggestions');
+            updateSectionContent(artistsList, data.artists, 'artist');
+
+            // Cập nhật phần bài hát
+            const songsList = document.getElementById('songSuggestions');
+            updateSectionContent(songsList, data.songs, 'song');
+
+            // Cập nhật phần album
+            const albumsList = document.getElementById('albumSuggestions');
+            updateSectionContent(albumsList, data.albums, 'album');
+        }
+
+        function updateSectionContent(container, items, type) {
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="no-results">Không tìm thấy kết quả</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const imageUrl = item.imageUrl || '/images/default.png';
+                const name = type === 'song' ? item.title : item.name;
+                const subtitle = type === 'song' ? item.artistName :
+                               type === 'album' ? item.artistName :
+                               'Nghệ sĩ';
+
+                return `
+                    <div class="suggestion-item" onclick="handleSuggestionClick('${type}', '${item.id}')">
+                        <img src="${imageUrl}" alt="${name}" class="suggestion-image">
+                        <div class="suggestion-info">
+                            <div class="suggestion-name">${name}</div>
+                            <div class="suggestion-type">${subtitle}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    });
+
+    function handleSuggestionClick(type, id) {
+        switch (type) {
+            case 'artist':
+                window.location.href = `/Artists/Profile/${id}`;
+                break;
+            case 'song':
+                window.location.href = `/Search/Song/${id}`;
+                break;
+            case 'album':
+                window.location.href = `/Search/Album/${id}`;
+                break;
+        }
+    }
+</script>
+<style>
+    .home-button {
+        color: #fff; /* Màu tím */
+        transition: all 0.3s ease;
+    }
+
+        .home-button:hover {
+            color: #4B0082;
+        }
+</style>

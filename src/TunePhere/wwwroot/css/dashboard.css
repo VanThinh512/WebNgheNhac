@@ -1,0 +1,176 @@
+.artist-dashboard {
+    padding: 32px;
+    background: #0d0d0d;
+    min-height: calc(100vh - 60px);
+    color: #fff;
+    margin-top: 60px;
+}
+
+.dashboard-header {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.artist-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.artist-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #bb86fc;
+}
+
+.artist-details h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 8px 0;
+}
+
+.artist-details p {
+    font-size: 14px;
+    color: #bb86fc;
+    margin: 0;
+}
+
+.dashboard-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.action-button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #2d2d2d;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+    .action-button:hover {
+        background: #bb86fc;
+        color: #000;
+    }
+
+.primary-button {
+    background: #bb86fc;
+    color: #000;
+}
+
+.secondary-button {
+    background: transparent;
+    border: 1px solid #bb86fc;
+    color: #bb86fc;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #2d2d2d;
+}
+
+    .stat-card:hover {
+        border-color: #bb86fc;
+    }
+
+.neon-icon {
+    font-size: 24px;
+    color: #bb86fc;
+}
+
+.stat-info h3 {
+    font-size: 14px;
+    color: #fff;
+    margin: 0 0 8px 0;
+}
+
+.neon-text {
+    color: #bb86fc;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.content-section {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.songs-list {
+    display: grid;
+    gap: 12px;
+}
+
+.song-item {
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+}
+
+    .song-item:hover {
+        background: #3d3d3d;
+    }
+
+.song-cover {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.song-title {
+    color: #fff;
+    font-size: 14px;
+    margin: 0;
+}
+
+.song-meta {
+    color: #bb86fc;
+    font-size: 12px;
+}
+
+.song-stats span {
+    color: #808080;
+    font-size: 12px;
+}
+
+.song-stats i {
+    color: #bb86fc;
+}

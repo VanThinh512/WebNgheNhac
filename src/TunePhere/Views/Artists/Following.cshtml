@@ -1,0 +1,142 @@
+@model IEnumerable<TunePhere.Models.UserFollower>
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = $"Người {ViewBag.DisplayName} đang theo dõi";
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var isCurrentUser = currentUserId == ViewBag.UserId;
+}
+
+<link rel="stylesheet" href="~/css/following.css" />
+
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="create-header position-relative" style="height: 200px;">
+        <div class="position-absolute w-100 h-100" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(13, 13, 13, 0.9));">
+            <div class="h-100 d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <span class="header-label mb-2">ĐANG THEO DÕI</span>
+                    <h1 class="display-5 fw-bold text-white text-shadow text-glow mt-5">
+                        @ViewBag.DisplayName Đang Theo Dõi <span class="text-accent">(@Model.Count())</span>
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div class="following-container">
+            <div class="row g-4">
+                @if (Model.Any())
+                {
+                    @foreach (var follow in Model)
+                    {
+                        var artist = ViewBag.ArtistMap != null && ViewBag.ArtistMap.ContainsKey(follow.FollowingId)
+                        ? ViewBag.ArtistMap[follow.FollowingId]
+                        : null;
+                        var isArtistProfile = ViewBag.ArtistMap != null && ViewBag.ArtistMap.ContainsKey(follow.FollowingId);
+                        var profileUrl = isArtistProfile ?
+                        Url.Action("Profile", "Artists", new { id = ViewBag.ArtistMap[follow.FollowingId].ArtistId }) :
+                        Url.Action("Details", "Users", new { id = follow.FollowingId });
+
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="following-item">
+                                <div class="following-avatar">
+                                    @if (!string.IsNullOrEmpty(follow.Following?.ImageUrl))
+                                    {
+                                        <img src="@follow.Following.ImageUrl" alt="@follow.Following.UserName" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-user-circle"></i>
+                                    }
+                                </div>
+                                <div class="following-info">
+                                    <h3>@follow.Following?.FullName</h3>
+                                    <p><i class="fas fa-calendar-alt me-1"></i> Theo dõi từ @follow.FollowedAt.ToString("dd/MM/yyyy")</p>
+
+                                    <div class="following-actions">
+                                        <a href="@profileUrl" class="btn-view">
+                                            <i class="fas fa-user me-1"></i> Xem trang cá nhân
+                                        </a>
+                                        @if (isCurrentUser)
+                                        {
+                                            <button class="btn-unfollow unfollow-btn"
+                                                    data-user-id="@follow.FollowingId"
+                                                    data-is-artist="@(isArtistProfile ? "true" : "false")"
+                                                    data-artist-id="@(isArtistProfile ? ViewBag.ArtistMap[follow.FollowingId].ArtistId.ToString() : "")">
+                                                <i class="fas fa-user-times"></i> Bỏ theo dõi
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="col-12">
+                        <div class="no-following">
+                            <i class="fas fa-user-friends fa-4x"></i>
+                            @if (isCurrentUser)
+                            {
+                                <h3>Bạn chưa theo dõi ai</h3>
+                                <p>Hãy khám phá và theo dõi những nghệ sĩ yêu thích của bạn</p>
+                                <a href="@Url.Action("Index", "Home")" class="btn-explore">
+                                    <i class="fas fa-search me-1"></i> Khám phá nghệ sĩ
+                                </a>
+                            }
+                            else
+                            {
+                                <h3>@ViewBag.DisplayName chưa theo dõi ai</h3>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.unfollow-btn').click(function() {
+                if (confirm('Bạn có chắc muốn hủy theo dõi người này?')) {
+                    const button = $(this);
+                    const isArtist = button.data('is-artist') === 'true';
+                    const userId = button.data('user-id');
+                    const artistId = button.data('artist-id');
+
+                    // Thực hiện cả hai loại unfollow
+                    $.ajax({
+                        url: '/Artists/UnfollowBoth',
+                        type: 'POST',
+                        data: { 
+                            targetUserId: userId,
+                            artistId: artistId
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Xóa phần tử khỏi giao diện
+                                button.closest('.col-xl-3').fadeOut(function() {
+                                    $(this).remove();
+                                    // Nếu không còn phần tử nào, tải lại trang
+                                    if ($('.col-xl-3').length === 0) {
+                                        location.reload();
+                                    }
+                                });
+                            } else {
+                                alert(response.message || 'Có lỗi xảy ra khi hủy theo dõi');
+                            }
+                        },
+                        error: function() {
+                            alert('Có lỗi xảy ra, vui lòng thử lại sau');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,589 @@
+@model IEnumerable<TunePhere.Models.Song>
+
+@using Microsoft.Extensions.DependencyInjection
+@inject AppDbContext DbContext
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<!-- CSS-->
+<link rel="stylesheet" href="~/css/homepage.css">
+<link rel="stylesheet" href="~/css/player.css">
+
+@{
+    var token = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<input type="hidden" name="__RequestVerificationToken" value="@token" />
+
+<!-- Audio Player -->
+<audio id="audioPlayer" style="display: none;">
+    <source src="" type="audio/mpeg">
+</audio>
+
+<!-- Video Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="video-container">
+                    <iframe id="videoFrame" width="100%" height="480" frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main-container">
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="library-header">
+                <div class="library-title">
+                    <i class="fas fa-book"></i>
+                    <h2>Thư viện</h2>
+                </div>
+                <div class="library-actions">
+                    <button class="add-button" title="Thêm mới" data-bs-toggle="collapse" data-bs-target="#addItemOptions">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <!-- Modal -->
+                    <div class="collapse" id="addItemOptions">
+                        <div class="card" style="background-color: #1e1e1e; border: none;">
+                            <div class="card-body">
+                                <a href="@Url.Action("Create", "Albums")" class="btn btn-secondary w-100 mb-2">Thêm Album</a>
+                                <a href="@Url.Action("Create", "Playlists")" class="btn btn-secondary w-100">Thêm Playlist</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="library-toggle">
+                <button id="toggle-sidebar" class="toggle-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <!-- Các danh mục thư viện sẽ được hiển thị ở đây -->
+            <a href="@Url.Action("Index", "UserFavoriteSongs")" class="library-item">
+                <i class="fas fa-music"></i>
+                <span>Bài hát đã thích</span>
+            </a>
+            <a href="@(User.Identity.IsAuthenticated ? "/Artists/Following" : "/Identity/Account/Login?ReturnUrl=/Artists/Following")" class="library-item">
+                <i class="fas fa-microphone-alt"></i>
+                <span>Nghệ sĩ đang theo dõi</span>
+            </a>
+            <a href="#" class="library-item">
+                <i class="fas fa-podcast"></i>
+                <span>Podcast</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="content">
+        <!-- Featured Playlist -->
+        <section class="featured-playlist">
+            <div class="playlist-card">
+                <div class="video-background">
+                    @{
+                        var featuredSong = Model.OrderByDescending(s => s.PlayCount).FirstOrDefault();
+                    }
+                    @if (featuredSong != null && !string.IsNullOrEmpty(featuredSong.VideoUrl))
+                    {
+                        <div class="video-container">
+                            @{
+                                var videoUrl = featuredSong.VideoUrl;
+                                var videoId = "";
+                                if (videoUrl.Contains("v="))
+                                {
+                                    videoId = videoUrl.Split(new[] { "v=" }, StringSplitOptions.None)[1];
+                                    if (videoId.Contains("&"))
+                                    {
+                                        videoId = videoId.Split('&')[0];
+                                    }
+                                }
+                                else if (videoUrl.Contains("youtu.be/"))
+                                {
+                                    videoId = videoUrl.Split(new[] { "youtu.be/" }, StringSplitOptions.None)[1];
+                                }
+                                var embedUrl = $"https://www.youtube.com/embed/{videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist={videoId}&showinfo=0&rel=0&modestbranding=1";
+                            }
+                            <iframe width="3840" height="2160"
+                                    src="@embedUrl"
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    }
+                </div>
+                <div class="playlist-content">
+                    <span class="playlist-label">CURRENT PLAYING</span>
+                    <h1 class="playlist-title">@featuredSong?.Title</h1>
+                    <p class="playlist-description">By @featuredSong?.Artists?.ArtistName</p>
+                    <div class="playlist-stats">
+                        <span class="likes">
+                            <i class="fa-solid fa-eye"></i>
+                            @featuredSong?.PlayCount View
+                        </span>
+                    </div>
+                    <button class="play-button" onclick="showVideo('@featuredSong?.VideoUrl')">
+                        <i class="fas fa-play"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Song List -->
+        <section class="song-list">
+            <div class="song-grid">
+                @foreach (var song in Model.OrderByDescending(s => s.PlayCount).Take(6))
+                {
+                    <div class="song-item" data-song-id="@song.SongId" data-title="@song.Title"
+                         data-artist="@song.Artists?.ArtistName" data-audio-url="@song.FileUrl"
+                         data-image-url="@song.ImageUrl" data-video-url="@song.VideoUrl">
+                        <img src="@song.ImageUrl" alt="@song.Title">
+                        @if (!string.IsNullOrEmpty(song.VideoUrl))
+                        {
+                            <button class="video-btn" onclick="showVideo('@song.VideoUrl')">
+                                <i class="fas fa-video"></i>
+                            </button>
+                        }
+                        <h3>@song.Title</h3>
+                        <p>@song.Artists?.ArtistName</p>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Những bài hát thịnh hành -->
+        <section class="music-section">
+            <h2 class="section-title">Những bài hát thịnh hành</h2>
+            <div class="music-grid">
+                @foreach (var song in Model.OrderByDescending(s => s.PlayCount).Take(4))
+                {
+                    <div class="music-card" ondblclick="location.href='/Songs/Details/@song.SongId'" data-song-id="@song.SongId" data-title="@song.Title" data-artist="@song.Artists?.ArtistName" data-audio-url="@song.FileUrl" data-image-url="@song.ImageUrl" data-video-url="@song.VideoUrl">
+                        <div class="card-img-container">
+                            <img src="@song.ImageUrl" alt="@song.Title">
+                            <div class="play-overlay">
+                                <button class="play-btn" onclick="playSong(this)">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                @if (!string.IsNullOrEmpty(song.VideoUrl))
+                                {
+                                    <button class="video-btn" onclick="showVideo('@song.VideoUrl')" title="Xem MV">
+                                        <i class="fas fa-film"></i>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <h3 class="song-title">@song.Title</h3>
+                        <p class="artist-name">@song.Artists?.ArtistName</p>
+                        <p class="play-count">@song.PlayCount lượt nghe</p>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Nghệ sĩ phổ biến -->
+        <section class="music-section">
+            <h2 class="section-title">Nghệ sĩ phổ biến</h2>
+            <div class="music-grid">
+                @foreach (var artist in ViewBag.PopularArtists)
+                {
+                    <div class="artist-card" onclick="location.href='/Artists/Profile/@artist.ArtistId'">
+                        <div class="card-img-container artist-img">
+                            <img src="@(string.IsNullOrEmpty(artist.ImageUrl) ? "/images/artist-placeholder.jpg" : artist.ImageUrl)" alt="@artist.ArtistName">
+                            <div class="play-overlay">
+                                <button class="play-btn" onclick="location.href='@Url.Action("Profile", "Artists", new { id = artist.ArtistId })'">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <h3 class="artist-name">@artist.ArtistName</h3>
+                        <p class="artist-type">Nghệ sĩ • @artist.Songs.Count bài hát</p>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Album nổi tiếng -->
+        <section class="music-section">
+            <h2 class="section-title">Album nổi tiếng</h2>
+            <div class="music-grid">
+                @foreach (var album in ViewBag.PopularAlbums)
+                {
+                    <div class="music-card" onclick="location.href='@Url.Action("Details", "Albums", new { id = album.AlbumId })'">
+                        <div class="card-img-container">
+                            <img src="@(string.IsNullOrEmpty(album.ImageUrl) ? "/images/album-placeholder.jpg" : album.ImageUrl)" alt="@album.AlbumName">
+                            <div class="play-overlay">
+                                <button class="play-btn">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <h3 class="song-title">@album.AlbumName</h3>
+                        <p class="artist-name">@(album.Artists?.ArtistName ?? "Không xác định")</p>
+                    </div>
+                }
+            </div>
+        </section>  
+    </div>
+</div>
+
+<!-- Now Playing Bar -->
+<div id="nowPlayingBar" class="now-playing-bar" style="display: none;">
+    <div class="now-playing-left">
+        <div class="now-playing-cover">
+            <img id="nowPlayingImage" src="" alt="Now Playing">
+        </div>
+        <div class="track-info">
+            <span id="nowPlayingTitle" class="song-name"></span>
+            <span id="nowPlayingArtist" class="artist-name"></span>
+        </div>
+    </div>
+    <div class="now-playing-center">
+        <div class="player-controls">
+            <button onclick="previousSong()" class="control-button">
+                <i class="fas fa-step-backward"></i>
+            </button>
+            <button onclick="togglePlay()" class="control-button play-pause-btn" id="playPauseButton">
+                <i class="fas fa-play"></i>
+            </button>
+            <button onclick="nextSong()" class="control-button">
+                <i class="fas fa-step-forward"></i>
+            </button>
+        </div>
+        <div class="playback-bar">
+            <span id="currentTime" class="time">0:00</span>
+            <div class="progress-bar">
+                <input type="range" id="seekBar" value="0" class="seek-bar">
+                <div class="progress-bar-bg"></div>
+            </div>
+            <span id="duration" class="time">0:00</span>
+        </div>
+    </div>
+    <div class="now-playing-right">
+        <button onclick="toggleMute()" class="control-button" id="volumeButton">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        <div class="volume-bar-container">
+            <input type="range" id="volumeBar" value="100" class="volume-bar">
+            <div class="volume-bar-bg"></div>
+            <button onclick="showVideo(currentSong?.videoUrl)" class="control-button" id="videoButton" style="display: none;">
+                <i class="fas fa-video"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Script -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let audioPlayer = new Audio();
+    let currentSongIndex = -1;
+    let songs = [];
+    let isPlaying = false;
+    let currentSong = null;
+
+    // Khởi tạo danh sách bài hát
+    function initializeSongs() {
+        const songElements = document.querySelectorAll('.music-card, .song-item');
+        songs = Array.from(songElements).map(card => ({
+            id: card.dataset.songId,
+            title: card.dataset.title,
+            artist: card.dataset.artist,
+            audioUrl: card.dataset.audioUrl,
+            imageUrl: card.dataset.imageUrl,
+            videoUrl: card.dataset.videoUrl
+        }));
+    }
+
+    // Khởi tạo các event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeSongs();
+
+        const seekBar = document.getElementById('seekBar');
+        const volumeBar = document.getElementById('volumeBar');
+
+        // Xử lý tua nhạc
+        seekBar.addEventListener('input', () => {
+            const time = (seekBar.value / 100) * audioPlayer.duration;
+            audioPlayer.currentTime = time;
+        });
+
+        // Xử lý âm lượng
+        volumeBar.addEventListener('input', () => {
+            const value = volumeBar.value;
+            audioPlayer.volume = value / 100;
+            volumeBar.style.setProperty('--volume-percentage', `${value}%`);
+
+            if (audioPlayer.volume > 0) {
+                const icon = document.querySelector('#volumeButton i');
+                icon.classList.remove('fa-volume-mute');
+                icon.classList.add('fa-volume-up');
+            }
+        });
+
+        // Cập nhật tiến trình
+        audioPlayer.addEventListener('timeupdate', () => {
+            const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            seekBar.value = percent;
+            seekBar.style.background = `linear-gradient(to right, #8B5CF6 ${percent}%, #535353 ${percent}%)`;
+
+            document.getElementById('currentTime').textContent = formatTime(audioPlayer.currentTime);
+            document.getElementById('duration').textContent = formatTime(audioPlayer.duration);
+        });
+
+        // Xử lý khi bài hát kết thúc
+        audioPlayer.addEventListener('ended', () => {
+            nextSong();
+        });
+
+        // Thêm sự kiện click cho các music card và song item
+        document.querySelectorAll('.music-card, .song-item').forEach((card, index) => {
+            card.addEventListener('click', () => {
+                playByIndex(index);
+            });
+        });
+
+        // Thêm sự kiện click cho các nút play
+        document.querySelectorAll('.play-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const card = button.closest('.music-card, .song-item');
+                const index = Array.from(document.querySelectorAll('.music-card, .song-item')).indexOf(card);
+                if (index !== -1) {
+                    playByIndex(index);
+                }
+            });
+        });
+
+        // Thêm sự kiện click cho các nút video
+        document.querySelectorAll('.video-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const card = button.closest('.music-card, .song-item');
+                const videoUrl = card.dataset.videoUrl;
+                if (videoUrl) {
+                    showVideo(videoUrl, card);
+                }
+            });
+        });
+    });
+
+    // Chuyển đến bài tiếp theo
+    function nextSong() {
+        if (currentSongIndex < songs.length - 1) {
+            playByIndex(currentSongIndex + 1);
+        }
+    }
+
+    // Chuyển về bài trước
+    function previousSong() {
+        if (currentSongIndex > 0) {
+            playByIndex(currentSongIndex - 1);
+        }
+    }
+
+    // Hàm phát nhạc theo index
+    function playByIndex(index) {
+        if (index < 0 || index >= songs.length) return;
+
+        currentSong = songs[index];
+        currentSongIndex = index;
+
+        // Cập nhật nguồn audio
+        audioPlayer.src = currentSong.audioUrl;
+
+        // Cập nhật thông tin hiển thị
+        document.getElementById('nowPlayingTitle').textContent = currentSong.title;
+        document.getElementById('nowPlayingArtist').textContent = currentSong.artist;
+        document.getElementById('nowPlayingImage').src = currentSong.imageUrl;
+
+        // Hiển thị/ẩn nút video
+        const videoButton = document.getElementById('videoButton');
+        videoButton.style.display = currentSong.videoUrl ? 'block' : 'none';
+
+        // Hiển thị thanh phát nhạc
+        document.getElementById('nowPlayingBar').style.display = 'flex';
+
+        // Phát nhạc và tăng lượt nghe
+        playAndIncrementCount(currentSong);
+    }
+
+    // Hàm phát nhạc và tăng lượt nghe
+    function playAndIncrementCount(song) {
+        audioPlayer.play()
+            .then(() => {
+                isPlaying = true;
+                updatePlayPauseButton();
+
+                // Gọi API để tăng lượt nghe
+                fetch(`/Songs/IncrementPlayCount/${song.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Cập nhật số lượt nghe trên giao diện nếu có
+                    const playCountElements = document.querySelectorAll('.play-count');
+                    playCountElements.forEach(element => {
+                        if (element.closest('.music-card')?.dataset.songId === song.id) {
+                            element.textContent = `${data.playCount} lượt nghe`;
+                        }
+                    });
+                })
+                .catch(error => console.error('Lỗi khi tăng lượt nghe:', error));
+            })
+            .catch(error => {
+                console.error('Lỗi phát nhạc:', error);
+            });
+    }
+
+    // Cập nhật nút play/pause
+    function updatePlayPauseButton() {
+        const button = document.getElementById('playPauseButton');
+        const icon = button.querySelector('i');
+
+        if (isPlaying) {
+            icon.classList.remove('fa-play');
+            icon.classList.add('fa-pause');
+        } else {
+            icon.classList.remove('fa-pause');
+            icon.classList.add('fa-play');
+        }
+    }
+
+    // Xử lý play/pause
+    function togglePlay() {
+        if (currentSongIndex === -1 && songs.length > 0) {
+            playByIndex(0);
+            return;
+        }
+
+        if (isPlaying) {
+            audioPlayer.pause();
+            isPlaying = false;
+        } else {
+            playAndIncrementCount(currentSong);
+        }
+
+        updatePlayPauseButton();
+    }
+
+    // Xử lý âm lượng
+    function toggleMute() {
+        const volumeButton = document.getElementById('volumeButton');
+        const icon = volumeButton.querySelector('i');
+
+        if (audioPlayer.volume > 0) {
+            audioPlayer.volume = 0;
+            icon.classList.remove('fa-volume-up');
+            icon.classList.add('fa-volume-mute');
+        } else {
+            audioPlayer.volume = volumeBar.value / 100;
+            icon.classList.remove('fa-volume-mute');
+            icon.classList.add('fa-volume-up');
+        }
+    }
+
+    // Hàm format thời gian
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    function showVideo(url, card) {
+        if (!url) return;
+
+        let videoId = "";
+        if (url.includes("v=")) {
+            videoId = url.split("v=")[1];
+            const ampersandPosition = videoId.indexOf('&');
+            if (ampersandPosition !== -1) {
+                videoId = videoId.substring(0, ampersandPosition);
+            }
+        } else if (url.includes("youtu.be/")) {
+            videoId = url.split("youtu.be/")[1];
+        }
+
+        const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&showinfo=0&rel=0&modestbranding=1&fs=1`;
+
+        const featuredVideo = document.querySelector('.featured-playlist .video-container iframe');
+        if (featuredVideo) {
+            featuredVideo.src = embedUrl;
+        }
+
+        const playlistTitle = document.querySelector('.playlist-title');
+        const playlistDescription = document.querySelector('.playlist-description');
+
+        if (card instanceof HTMLElement) {
+            const title = card.dataset.title;
+            const artist = card.dataset.artist;
+            if (playlistTitle) playlistTitle.textContent = title;
+            if (playlistDescription) playlistDescription.textContent = `By ${artist}`;
+        }
+        else if (currentSong) {
+            if (playlistTitle) playlistTitle.textContent = currentSong.title;
+            if (playlistDescription) playlistDescription.textContent = `By ${currentSong.artist}`;
+        }
+    }
+
+    document.getElementById('videoButton').onclick = function() {
+        if (currentSong && currentSong.videoUrl) {
+            showVideo(currentSong.videoUrl);
+        }
+    };
+</script>
+
+<script src="~/js/homepage.js"></script>
+
+
+    <style >
+    /* CSS để thêm vào homepage.css */
+    .sidebar-content a.library-item {
+        text-decoration: none;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+    }
+
+    .song-name:hover{
+        color: #fff;
+    }
+
+    .sidebar-content a.library-item:hover {
+        background-color: rgba(128, 0, 128, 0.1); /* Màu tím nhạt */
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .btn:hover {
+        background-color: #4B0082; /* Màu tím */
+        color: #fff;
+    }
+
+    .play-btn:hover, .video-btn:hover, .add-button:hover, .toggle-btn:hover, .play-button:hover {
+        background-color: #4B0082; /* Màu tím */
+        color: #fff;
+    }
+
+    .play-button:hover {
+        color: #4B0082;
+    }
+</style>

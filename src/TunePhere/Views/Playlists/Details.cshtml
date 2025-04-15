@@ -1,0 +1,204 @@
+﻿@using System.Security.Claims
+@model TunePhere.Models.Playlist
+
+@{
+    ViewData["Title"] = Model.Title;
+    int indexCount = 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/playlist-details.css" />
+    <link rel="stylesheet" href="~/css/playlist-modal.css" />
+}
+
+<div class="playlist-details-page">
+    <div class="playlist-hero">
+        <div class="playlist-cover">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="@Model.Title" class="cover-image" />
+            }
+            else
+            {
+                <div class="default-cover">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+            }
+        </div>
+        <div class="playlist-info">
+            <div class="playlist-type">Playlist</div>
+            <h1 class="playlist-title">@Model.Title</h1>
+            <div class="playlist-meta">
+                <div class="creator-info">
+                    <img src="@(string.IsNullOrEmpty(Model.User.ImageUrl) ? "/images/default-avatar.jpg" : Model.User.ImageUrl)" 
+                         alt="@Model.User.UserName" 
+                         class="creator-avatar" />
+                    <span class="creator-name">@Model.User.FullName</span>
+                </div>
+                <div class="playlist-stats">
+                    <span class="visibility-badge @(Model.IsPublic ? "public" : "private")">
+                        <i class="fa-solid @(Model.IsPublic ? "fa-globe" : "fa-lock")"></i>
+                        @(Model.IsPublic ? "Công khai" : "Riêng tư")
+                    </span>
+                    <span class="stat-item">
+                        <i class="fa-solid fa-music"></i>
+                        @Model.PlaylistSongs.Count bài hát
+                    </span>
+                    <span class="stat-item">
+                        <i class="fa-regular fa-calendar"></i>
+                        Tạo ngày @Model.CreatedAt.ToString("dd/MM/yyyy")
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="playlist-content">
+        <div class="content-header">
+            <h2>Danh sách bài hát</h2>
+            @if (User.Identity.IsAuthenticated && User.FindFirstValue(ClaimTypes.NameIdentifier) == Model.UserId)
+            {
+                <button class="add-song-btn" onclick="showAddSongModal()">
+                    <i class="fa-solid fa-plus"></i>
+                    Thêm bài hát
+                </button>
+            }
+        </div>
+
+        @if (Model.PlaylistSongs.Any())
+        {
+            <div class="songs-table">
+                <div class="table-header">
+                    <div class="col-number">#</div>
+                    <div class="col-title">Bài hát</div>
+                    <div class="col-artist">Nghệ sĩ</div>
+                    <div class="col-album">Album</div>
+                    <div class="col-actions"></div>
+                </div>
+                @foreach (var playlistSong in Model.PlaylistSongs.OrderBy(ps => ps.AddedAt))
+                {
+                    <div class="song-row">
+                        <div class="col-number">
+                            @(indexCount + 1)
+                        </div>
+                        <div class="col-title">
+                            <div class="song-info">
+                                @if (playlistSong.Song != null && !string.IsNullOrEmpty(playlistSong.Song.ImageUrl))
+                                {
+                                    <img src="@playlistSong.Song.ImageUrl" alt="@playlistSong.Song.Title" class="song-thumb" />
+                                }
+                                else
+                                {
+                                    <div class="default-thumb">
+                                        <i class="fa-solid fa-music"></i>
+                                    </div>
+                                }
+                                <div class="song-details">
+                                    <div class="song-title" 
+                                         data-song-id="@playlistSong.Song?.SongId"
+                                         data-song-url="@playlistSong.Song?.FileUrl"
+                                         data-song-title="@playlistSong.Song?.Title"
+                                         data-song-artist="@playlistSong.Song?.Artists?.ArtistName"
+                                         data-song-image="@playlistSong.Song?.ImageUrl">
+                                        <button class="play-btn" onclick="playSong(this.parentElement)">
+                                            <i class="fa-solid fa-play"></i>
+                                        </button>
+                                        <a href="@Url.Action("Details", "Songs", new { id = playlistSong.Song?.SongId, playlistId = Model.PlaylistId, index = indexCount })" 
+                                           class="song-link">
+                                            @(playlistSong.Song?.Title ?? "Không có tiêu đề")
+                                        </a>
+                                    </div>
+                                    @if (playlistSong.Song?.Duration != null)
+                                    {
+                                        <div class="song-duration">@(((TimeSpan)playlistSong.Song.Duration).ToString(@"mm\:ss"))</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-artist">
+                            @if (playlistSong.Song?.Artists != null)
+                            {
+                                <a href="@Url.Action("Profile", "Artists", new { id = playlistSong.Song.ArtistId })" class="artist-link">
+                                    @playlistSong.Song.Artists.ArtistName
+                                </a>
+                            }
+                            else
+                            {
+                                <span>Không có nghệ sĩ</span>
+                            }
+                        </div>
+                        <div class="col-album">
+                            @if (playlistSong.Song?.Albums != null && playlistSong.Song.AlbumId != null)
+                            {
+                                <a href="@Url.Action("Details", "Albums", new { id = playlistSong.Song.AlbumId })" class="album-link">
+                                    @playlistSong.Song.Albums.AlbumName
+                                </a>
+                            }
+                        </div>
+                        <div class="col-actions">
+                            @if (User.Identity.IsAuthenticated && User.FindFirstValue(ClaimTypes.NameIdentifier) == Model.UserId)
+                            {
+                                <button class="action-btn remove-btn" onclick="removeSong(@playlistSong.SongId)">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    
+                    indexCount++;
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-music"></i>
+                <p>Chưa có bài hát nào trong playlist</p>
+                @if (User.Identity.IsAuthenticated && User.FindFirstValue(ClaimTypes.NameIdentifier) == Model.UserId)
+                {
+                    <button class="add-song-btn" onclick="showAddSongModal()">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm bài hát đầu tiên
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal Thêm Bài Hát -->
+<div id="addSongModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Thêm bài hát vào playlist</h3>
+            <button class="close-btn" onclick="closeAddSongModal()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="search-box">
+                <input type="text" id="songSearch" placeholder="Tìm kiếm bài hát..." />
+                <i class="fa-solid fa-search"></i>
+            </div>
+            <div id="searchResults" class="search-results">
+                <!-- Kết quả tìm kiếm sẽ được hiển thị ở đây -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audio Player -->
+<div class="audio-player" style="display: none;">
+    <audio id="audioPlayer" controls>
+        <source src="" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+</div>
+
+@section Scripts {
+    <script>
+        // Khai báo biến playlistId để sử dụng trong file JavaScript
+        const playlistId = @Model.PlaylistId;
+    </script>
+    <script src="~/js/playlist-details.js"></script>
+}

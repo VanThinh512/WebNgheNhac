@@ -1,0 +1,683 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/admin-dashboard.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="dashboard-container">
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Lỗi!</h4>
+            <p>@ViewBag.Error</p>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="dashboard-title">Dashboard</h1>
+
+        <div class="d-flex">
+            <div class="me-3">
+                <input type="text" class="search-box" placeholder="Tìm kiếm...">
+            </div>
+            <button class="btn-action">
+                <i class="fas fa-download me-2"></i>Tải báo cáo
+            </button>
+        </div>
+    </div>
+
+    <!-- Thống kê -->
+    <div class="row g-4 mb-4">
+        <!-- Thống kê người dùng -->
+        <div class="col-xl-3 col-md-6" onclick="window.location.href='/Admin/Users'">
+            <div class="card stat-card users h-100">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <div class="stat-value">@(ViewBag.TotalUsers ?? 0)</div>
+                            <div class="stat-label">Người dùng</div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-users fa-2x stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thống kê bài hát -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card songs h-100" onclick="window.location.href='/Admin/Songs'">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <div class="stat-value">@(ViewBag.TotalSongs ?? 0)</div>
+                            <div class="stat-label">Bài hát</div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-music fa-2x stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thống kê playlist -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card playlists h-100" onclick="window.location.href='/Admin/Playlists'">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <div class="stat-value">@(ViewBag.TotalPlaylists ?? 0)</div>
+                            <div class="stat-label">Playlist</div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-list fa-2x stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thống kê lượt nghe -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card plays h-100">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <div class="stat-value">@(ViewBag.TotalPlays ?? 0)</div>
+                            <div class="stat-label">Lượt nghe</div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-headphones fa-2x stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thêm biểu đồ thống kê theo ngày vào trước biểu đồ thống kê theo tháng -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Thống kê lượt nghe theo ngày</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-0" type="button" id="dailyChartOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dailyChartOptions">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sync-alt"></i>Làm mới</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-download"></i>Xuất dữ liệu</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-expand"></i>Xem đầy đủ</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="dailyListeningChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Thống kê ngày hôm nay</h6>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.DailyStats != null && ViewBag.DailyStats.Count > 0)
+                    {
+                        var today = ViewBag.DailyStats[ViewBag.DailyStats.Count - 1];
+                        <div class="mb-4">
+                            <h4 class="mb-0">@today.Date (@today.DayOfWeek)</h4>
+                            <p class="text-secondary mb-3">Thống kê cập nhật mới nhất</p>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-3 bg-opacity-10 bg-primary rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-secondary fs-sm">Lượt nghe</span>
+                                        <i class="fas fa-headphones text-primary"></i>
+                                    </div>
+                                    <h4 class="mb-0">@today.PlayCount.ToString("N0")</h4>
+                                    @if (today.Growth > 0)
+                                    {
+                                        <small class="text-success"><i class="fas fa-arrow-up me-1"></i>@today.Growth%</small>
+                                    }
+                                    else if (today.Growth < 0)
+                                    {
+                                        <small class="text-danger"><i class="fas fa-arrow-down me-1"></i>@Math.Abs(today.Growth)%</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-secondary">0%</small>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-opacity-10 bg-success rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-secondary fs-sm">Người dùng</span>
+                                        <i class="fas fa-users text-success"></i>
+                                    </div>
+                                    <h4 class="mb-0">@today.ActiveUsers</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-opacity-10 bg-info rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-secondary fs-sm">Bài hát mới</span>
+                                        <i class="fas fa-music text-info"></i>
+                                    </div>
+                                    <h4 class="mb-0">@today.NewSongs</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-opacity-10 bg-warning rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-secondary fs-sm">Thời gian nghe TB</span>
+                                        <i class="fas fa-clock text-warning"></i>
+                                    </div>
+                                    <h4 class="mb-0">@today.AverageListeningTime phút</h4>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-info-circle me-2"></i>Chưa có dữ liệu thống kê
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biểu đồ và bảng thống kê -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Thống kê lượt nghe theo tháng</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-0" type="button" id="chartOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartOptions">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sync-alt"></i>Làm mới</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-download"></i>Xuất dữ liệu</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-expand"></i>Xem đầy đủ</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="monthlyListeningChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top bài hát phổ biến -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Top bài hát phổ biến</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-0" type="button" id="songOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="songOptions">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sort"></i>Sắp xếp</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-filter"></i>Lọc</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="px-4">Tên bài hát</th>
+                                    <th class="text-end px-4">Lượt nghe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.TopSongs != null && ViewBag.TopSongs.Count > 0)
+                                {
+                                    @foreach (var song in ViewBag.TopSongs)
+                                    {
+                                        <tr class="song-row">
+                                            <td class="px-4">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-music me-3 text-purple"></i>
+                                                    <div class="song-title text-white">@song.Title</div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end px-4">
+                                                <span class="play-count text-white">@song.PlayCount.ToString("N0")</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="2" class="text-center py-4">
+                                            <i class="fas fa-info-circle me-2"></i>Chưa có dữ liệu
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thống kê chi tiết lượt nghe theo tháng -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Thống kê chi tiết lượt nghe theo tháng</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-0" type="button" id="monthlyStatsOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="monthlyStatsOptions">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-calendar"></i>Chọn năm</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-download"></i>Tải xuống</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Tháng</th>
+                                    <th>Lượt nghe</th>
+                                    <th>Người dùng hoạt động</th>
+                                    <th>Bài hát mới</th>
+                                    <th>Thời gian nghe TB (phút)</th>
+                                    <th>Tăng trưởng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.MonthlyStats != null && ViewBag.MonthlyStats.Count > 0)
+                                {
+                                    @foreach (var stat in ViewBag.MonthlyStats)
+                                    {
+                                        <tr>
+                                            <td>@stat.Month</td>
+                                            <td>@stat.PlayCount.ToString("N0")</td>
+                                            <td>@stat.ActiveUsers.ToString("N0")</td>
+                                            <td>@stat.NewSongs.ToString("N0")</td>
+                                            <td>@stat.AverageListeningTime</td>
+                                            <td>
+                                                @if (stat.Growth > 0)
+                                                {
+                                                    <span class="growth-positive">
+                                                        <i class="fas fa-arrow-up me-1"></i>@stat.Growth%
+                                                    </span>
+                                                }
+                                                else if (stat.Growth < 0)
+                                                {
+                                                    <span class="growth-negative">
+                                                        <i class="fas fa-arrow-down me-1"></i>@Math.Abs(stat.Growth)%
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="growth-neutral">0%</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            <i class="fas fa-info-circle me-2"></i>Chưa có dữ liệu thống kê theo tháng
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thống kê chi tiết lượt nghe theo ngày -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Thống kê chi tiết lượt nghe theo ngày</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-0" type="button" id="dailyStatsOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dailyStatsOptions">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-calendar"></i>Chọn khoảng thời gian</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-download"></i>Tải xuống</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Ngày</th>
+                                    <th>Thứ</th>
+                                    <th>Lượt nghe</th>
+                                    <th>Người dùng hoạt động</th>
+                                    <th>Bài hát mới</th>
+                                    <th>Thời gian nghe TB (phút)</th>
+                                    <th>Tăng trưởng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.DailyStats != null && ViewBag.DailyStats.Count > 0)
+                                {
+                                    @foreach (var stat in ViewBag.DailyStats)
+                                    {
+                                        <tr>
+                                            <td>@stat.Date</td>
+                                            <td>@stat.DayOfWeek</td>
+                                            <td>@stat.PlayCount.ToString("N0")</td>
+                                            <td>@stat.ActiveUsers.ToString("N0")</td>
+                                            <td>@stat.NewSongs.ToString("N0")</td>
+                                            <td>@stat.AverageListeningTime</td>
+                                            <td>
+                                                @if (stat.Growth > 0)
+                                                {
+                                                    <span class="growth-positive">
+                                                        <i class="fas fa-arrow-up me-1"></i>@stat.Growth%
+                                                    </span>
+                                                }
+                                                else if (stat.Growth < 0)
+                                                {
+                                                    <span class="growth-negative">
+                                                        <i class="fas fa-arrow-down me-1"></i>@Math.Abs(stat.Growth)%
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="growth-neutral">0%</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <i class="fas fa-info-circle me-2"></i>Chưa có dữ liệu thống kê theo ngày
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const purple = '#8b5cf6';
+            const purpleLight = 'rgba(139, 92, 246, 0.1)';
+            const purpleAlpha = 'rgba(139, 92, 246, 0.8)';
+
+            // Cấu hình chung cho biểu đồ
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#f8fafc',
+                            font: {
+                                size: 14,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#cbd5e1',
+                        borderColor: purple,
+                        borderWidth: 1,
+                        padding: 15,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: purpleLight,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#f8fafc',
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: purpleLight,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#f8fafc',
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Biểu đồ thống kê theo ngày
+            const dailyCtx = document.getElementById('dailyListeningChart');
+            if (dailyCtx) {
+                const dailyData = @Html.Raw(Json.Serialize(ViewBag.DailyPlayCounts ?? new int[] {}));
+                const dailyLabels = @Html.Raw(Json.Serialize(ViewBag.Days ?? new string[] {}));
+
+                if (dailyData && dailyLabels && dailyData.length > 0 && dailyLabels.length > 0) {
+                    new Chart(dailyCtx, {
+                        type: 'line',
+                        data: {
+                            labels: dailyLabels,
+                            datasets: [{
+                                label: 'Lượt nghe',
+                                data: dailyData,
+                                borderColor: purple,
+                                backgroundColor: purpleLight,
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: '#ffffff',
+                                pointBorderColor: purple,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: defaultOptions
+                    });
+                } else {
+                    dailyCtx.style.display = 'none';
+                    const noDataMessage = document.createElement('div');
+                    noDataMessage.className = 'no-data-message';
+                    noDataMessage.innerHTML = '<i class="fas fa-info-circle"></i> Chưa có dữ liệu thống kê';
+                    dailyCtx.parentNode.appendChild(noDataMessage);
+                }
+            }
+
+            // Biểu đồ thống kê theo tháng
+            const monthlyCtx = document.getElementById('monthlyListeningChart');
+            if (monthlyCtx) {
+                const monthlyData = @Html.Raw(Json.Serialize(ViewBag.PlayCounts ?? new int[] {}));
+                const monthlyLabels = @Html.Raw(Json.Serialize(ViewBag.Months ?? new string[] {}));
+
+                if (monthlyData && monthlyLabels && monthlyData.length > 0 && monthlyLabels.length > 0) {
+                    new Chart(monthlyCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: monthlyLabels,
+                            datasets: [{
+                                label: 'Lượt nghe',
+                                data: monthlyData,
+                                backgroundColor: purpleAlpha,
+                                borderColor: purple,
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: defaultOptions
+                    });
+                } else {
+                    monthlyCtx.style.display = 'none';
+                    const noDataMessage = document.createElement('div');
+                    noDataMessage.className = 'no-data-message';
+                    noDataMessage.innerHTML = '<i class="fas fa-info-circle"></i> Chưa có dữ liệu thống kê';
+                    monthlyCtx.parentNode.appendChild(noDataMessage);
+                }
+            }
+        });
+    </script>
+}
+
+<style>
+    .text-purple {
+        color: #8b5cf6;
+    }
+    .song-row {
+        transition: all 0.3s ease;
+    }
+    .song-row:hover {
+        background-color: rgba(139, 92, 246, 0.1);
+    }
+    .song-title {
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    .play-count {
+        font-weight: 500;
+        color: #8b5cf6;
+    }
+    .table > :not(caption) > * > * {
+        padding: 1rem 0;
+        background-color: transparent;
+        border-bottom-color: rgba(139, 92, 246, 0.1);
+    }
+    .table thead th {
+        font-weight: 600;
+        color: #f8fafc;
+        border-bottom: 2px solid rgba(139, 92, 246, 0.2);
+    }
+    .custom-table {
+        margin-bottom: 0;
+    }
+
+    .custom-table thead th {
+        background-color: rgba(139, 92, 246, 0.1);
+        color: #f8fafc;
+        font-weight: 600;
+        border-bottom: 2px solid rgba(139, 92, 246, 0.2);
+        padding: 1rem;
+    }
+
+    .custom-table tbody td {
+        padding: 1rem;
+        color: #f8fafc;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        font-size: 0.95rem;
+    }
+
+    .custom-table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .custom-table tbody tr:hover {
+        background-color: rgba(139, 92, 246, 0.1);
+    }
+
+    .growth-positive {
+        color: #10b981;
+        font-weight: 500;
+    }
+
+    .growth-negative {
+        color: #ef4444;
+        font-weight: 500;
+    }
+
+    .growth-neutral {
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .table-responsive {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .card {
+        background-color: #1e293b;
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .card-header {
+        background-color: #1e293b;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        padding: 1.25rem;
+    }
+
+    .card-header h6 {
+        color: #f8fafc;
+        font-size: 1rem;
+    }
+
+    .dropdown-item {
+        color: #f8fafc;
+        padding: 0.5rem 1rem;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+    }
+
+    .dropdown-item i {
+        margin-right: 0.5rem;
+        color: #8b5cf6;
+    }
+</style>

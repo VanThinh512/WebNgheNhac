@@ -1,0 +1,63 @@
+@model TunePhere.Models.Artists
+@{
+    ViewData["Title"] = "Người theo dõi";
+}
+
+<link rel="stylesheet" href="~/css/follower.css" />
+
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="create-header position-relative" style="height: 200px;">
+        <div class="position-absolute w-100 h-100" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(13, 13, 13, 0.9));">
+            <div class="h-100 d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <span class="header-label mb-2">NGƯỜI THEO DÕI</span>
+                    <h1 class="display-5 fw-bold text-white text-shadow text-glow mt-5">Người Theo Dõi @Model.ArtistName</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div class="followers-container">
+            <div class="row">
+                <div class="col-md-10 mx-auto">
+                    <div class="followers-count">
+                        @Model.GetFollowersCount() người theo dõi
+                    </div>
+
+                    <div class="followers-list mt-4">
+                        @if (Model.Followers != null && Model.Followers.Any())
+                        {
+                            @foreach (var follower in Model.Followers.OrderByDescending(f => f.FollowedAt))
+                            {
+                                <div class="follower-item">
+                                    <div class="follower-avatar">
+                                        @if (!string.IsNullOrEmpty(follower.User?.ImageUrl))
+                                        {
+                                            <img src="@follower.User.ImageUrl" alt="@follower.User.UserName" />
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-user-circle"></i>
+                                        }
+                                    </div>
+                                    <div class="follower-info">
+                                        <h3>@follower.User?.FullName</h3>
+                                        <p>Theo dõi từ @follower.FollowedAt.ToString("dd/MM/yyyy")</p>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-followers">
+                                <p><i class="fas fa-users me-2"></i>Chưa có người theo dõi nào.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

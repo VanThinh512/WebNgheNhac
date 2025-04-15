@@ -1,0 +1,377 @@
+﻿@model TunePhere.Models.ListeningRoom
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<TunePhere.Models.AppUser> UserManager
+
+@{
+    ViewData["Title"] = "Chi Tiết Phòng Nghe Nhạc";
+    
+    // Lấy ID người dùng hiện tại và kiểm tra vai trò Admin
+    var currentUserId = UserManager.GetUserId(User);
+    var isAdmin = User.IsInRole("Administrator");
+    
+    // Kiểm tra xem người dùng có quyền chỉnh sửa/xóa không
+    var canEditDelete = isAdmin || (Model.CreatorId == currentUserId);
+}
+
+<link rel="stylesheet" href="~/css/listeningroom-details.css?v=@DateTime.Now.Ticks" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="tunephere-container">
+    <div class="tunephere-breadcrumb">
+        <a asp-action="Index">
+            <i class="fas fa-headphones-alt me-1"></i>
+            <span>Phòng Nghe Nhạc</span>
+        </a>
+        <span class="divider">/</span>
+        <span class="current">Chi Tiết</span>
+    </div>
+
+    <div class="tunephere-layout">
+        <div class="tunephere-main">
+            <div class="tunephere-card">
+                <div class="tunephere-card-header">
+                    <h2 class="tunephere-card-title">
+                        <i class="fas fa-music"></i>
+                        @Model.Title
+                    </h2>
+                    <span class="tunephere-badge @(Model.IsActive ? "tunephere-badge-success" : "tunephere-badge-danger")">
+                        @(Model.IsActive ? "Đang Hoạt Động" : "Không Hoạt Động")
+                    </span>
+                </div>
+                <div class="tunephere-card-body">
+                    <div class="tunephere-info-grid">
+                        <div class="tunephere-info-group">
+                            <label class="tunephere-info-label">
+                                <i class="fas fa-user"></i>
+                                Người Tạo
+                            </label>
+                            <p class="tunephere-info-value">@Model.Creator?.Email</p>
+                        </div>
+
+                        <div class="tunephere-info-group">
+                            <label class="tunephere-info-label">
+                                <i class="fas fa-clock"></i>
+                                Thời Gian Tạo
+                            </label>
+                            <p class="tunephere-info-value">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+
+                        @if (Model.CurrentSong != null)
+                        {
+                            <div class="tunephere-song-card">
+                                <div class="tunephere-song-header">
+                                    <i class="fas fa-play"></i>
+                                    <span>Bài Hát Đang Phát</span>
+                                </div>
+                                <div class="tunephere-song-body">
+                                    <img src="@(string.IsNullOrEmpty(Model.CurrentSong.ImageUrl) ? "/images/default-song.png" : Model.CurrentSong.ImageUrl)"
+                                         alt="@Model.CurrentSong.Title"
+                                         class="tunephere-song-image">
+                                    <div class="tunephere-song-info">
+                                        <h5 class="tunephere-song-title">@Model.CurrentSong.Title</h5>
+                                        <p class="tunephere-song-artist">@(!string.IsNullOrEmpty(Model.CurrentSong.Artists?.ArtistName) ? Model.CurrentSong.Artists.ArtistName : "Nghệ sĩ không xác định")</p>
+
+                                        <div class="tunephere-audio-player">
+                                            <audio id="audioPlayer" style="display: none;">
+                                                <source src="@Model.CurrentSong.FileUrl" type="audio/mpeg">
+                                                Trình duyệt của bạn không hỗ trợ phát audio.
+                                            </audio>
+
+                                            <div class="tunephere-progress">
+                                                <div id="progressBar" class="tunephere-progress-bar" style="width: 0%"></div>
+                                            </div>
+
+                                            <div class="tunephere-time-display">
+                                                <span id="currentTime">0:00</span>
+                                                <span id="duration">0:00</span>
+                                            </div>
+                                            
+                                            <div class="tunephere-controls" style="text-align: center; margin-top: 15px;">
+                                                <button id="playButton" class="tunephere-btn">
+                                                    <i class="fas fa-play"></i>
+                                                    <span>Phát</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.Participants != null && Model.Participants.Any())
+                        {
+                            <div class="tunephere-info-group">
+                                <label class="tunephere-info-label">
+                                    <i class="fas fa-users"></i>
+                                    Người Tham Gia (@Model.Participants.Count)
+                                </label>
+                                <div class="tunephere-participants">
+                                    @foreach (var participant in Model.Participants)
+                                    {
+                                        <div class="tunephere-participant">
+                                            <img src="@(!string.IsNullOrEmpty(participant.User?.ImageUrl) ? participant.User.ImageUrl : "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y")"
+                                                 alt="@participant.User?.UserName"
+                                                 class="tunephere-participant-image">
+                                            <span class="tunephere-participant-name">@(!string.IsNullOrEmpty(participant.User?.UserName) ? participant.User.UserName : "Người dùng không xác định")</span>
+                                            <span class="tunephere-participant-time">@participant.JoinedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="tunephere-actions">
+                @if (Model.IsActive)
+                {
+                    <a asp-action="Join" asp-route-id="@Model.RoomId" class="tunephere-btn tunephere-btn-success">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Tham Gia</span>
+                    </a>
+                }
+                
+                @if (canEditDelete)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.RoomId" class="tunephere-btn tunephere-btn-primary">
+                        <i class="fas fa-edit"></i>
+                        <span>Chỉnh Sửa</span>
+                    </a>
+                    
+                    <a asp-action="Delete" asp-route-id="@Model.RoomId" class="tunephere-btn tunephere-btn-danger">
+                        <i class="fas fa-trash"></i>
+                        <span>Xóa Phòng</span>
+                    </a>
+                }
+                
+                <a asp-action="Index" class="tunephere-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Quay Lại</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="tunephere-sidebar">
+            <div class="tunephere-card">
+                <div class="tunephere-card-header">
+                    <h2 class="tunephere-card-title">
+                        <i class="fas fa-comments"></i>
+                        Trò Chuyện
+                    </h2>
+                </div>
+                <div class="tunephere-card-body">
+                    <div class="tunephere-chat">
+                        <div class="tunephere-chat-messages" id="chatMessages">
+                            <!-- Tin nhắn sẽ được thêm vào đây -->
+                        </div>
+                        <div class="tunephere-chat-input">
+                            <input type="text" id="messageInput" placeholder="Nhập tin nhắn...">
+                            <button class="tunephere-chat-send" id="sendMessage">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tunephere-card">
+                <div class="tunephere-card-header">
+                    <h2 class="tunephere-card-title">
+                        <i class="fas fa-info-circle"></i>
+                        Thống Kê
+                    </h2>
+                </div>
+                <div class="tunephere-card-body">
+                    <div class="tunephere-stats-item">
+                        <span class="tunephere-stats-label">Số người tham gia</span>
+                        <span class="tunephere-stats-value">@Model.Participants.Count()</span>
+                    </div>
+                    <div class="tunephere-stats-item">
+                        <span class="tunephere-stats-label">Thời gian hoạt động</span>
+                        <span class="tunephere-stats-value">@((DateTime.Now - Model.CreatedAt).Days) ngày</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendMessage');
+            const chatMessages = document.getElementById('chatMessages');
+            const roomId = @Model.RoomId;
+            const currentUser = '@User.Identity?.Name';
+            
+            // Audio player
+            const audioPlayer = document.getElementById('audioPlayer');
+            const progressBar = document.getElementById('progressBar');
+            const currentTimeDisplay = document.getElementById('currentTime');
+            const durationDisplay = document.getElementById('duration');
+            const playButton = document.getElementById('playButton');
+            
+            if (audioPlayer) {
+                playButton.addEventListener('click', function() {
+                    if (audioPlayer.paused) {
+                        audioPlayer.play();
+                        playButton.innerHTML = '<i class="fas fa-pause"></i><span>Tạm dừng</span>';
+                    } else {
+                        audioPlayer.pause();
+                        playButton.innerHTML = '<i class="fas fa-play"></i><span>Phát</span>';
+                    }
+                });
+                
+                audioPlayer.addEventListener('timeupdate', function() {
+                    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                    progressBar.style.width = progress + '%';
+                    currentTimeDisplay.textContent = formatTime(audioPlayer.currentTime);
+                });
+
+                audioPlayer.addEventListener('loadedmetadata', function() {
+                    durationDisplay.textContent = formatTime(audioPlayer.duration);
+                });
+                
+                document.querySelector('.tunephere-progress').addEventListener('click', function(e) {
+                    const percent = e.offsetX / this.offsetWidth;
+                    audioPlayer.currentTime = percent * audioPlayer.duration;
+                });
+
+                function formatTime(seconds) {
+                    const minutes = Math.floor(seconds / 60);
+                    seconds = Math.floor(seconds % 60);
+                    return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                }
+            }
+
+            // Tạo kết nối SignalR
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub", {
+                    skipNegotiation: true,
+                    transport: signalR.HttpTransportType.WebSockets
+                })
+                .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
+                .configureLogging(signalR.LogLevel.Debug)
+                .build();
+
+            // Bắt đầu kết nối
+            async function startConnection() {
+                try {
+                    await connection.start();
+                    console.log("Đã kết nối SignalR");
+                    await connection.invoke("JoinRoom", roomId);
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                    addSystemMessage("Đã kết nối thành công!");
+                } catch (err) {
+                    console.error("Lỗi kết nối:", err);
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    addSystemMessage("Không thể kết nối. Đang thử lại...", true);
+                    setTimeout(startConnection, 5000);
+                }
+            }
+
+            connection.onclose(async () => {
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+                addSystemMessage("Mất kết nối. Đang kết nối lại...", true);
+                await startConnection();
+            });
+
+            // Xử lý các sự kiện
+            connection.on("ConnectionEstablished", (connectionId) => {
+                console.log("Đã kết nối với ID:", connectionId);
+                addSystemMessage("Đã kết nối với phòng chat!");
+            });
+
+            connection.on("LoadMessages", (messages) => {
+                chatMessages.innerHTML = ''; // Xóa tin nhắn hiện tại
+                messages.forEach(message => {
+                    if (message.isSystemMessage) {
+                        addSystemMessage(message.content);
+                    } else {
+                        addMessage(message.sender.userName, message.content, message.sentAt, message.sender.id === currentUser);
+                    }
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+
+            connection.on("UserJoined", (userName) => {
+                addSystemMessage(`${userName} đã tham gia phòng chat`);
+            });
+
+            connection.on("UserLeft", (userName) => {
+                addSystemMessage(`${userName} đã rời phòng chat`);
+            });
+
+            connection.on("ErrorOccurred", (error) => {
+                console.error("Lỗi:", error);
+                addSystemMessage(error, true);
+            });
+
+            // Nhận tin nhắn
+            connection.on("ReceiveMessage", (user, message, timestamp) => {
+                addMessage(user, message, timestamp, user === currentUser);
+            });
+
+            // Gửi tin nhắn
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+                if (message) {
+                    try {
+                        await connection.invoke("SendMessage", roomId, message);
+                        messageInput.value = '';
+                    } catch (err) {
+                        console.error("Lỗi gửi tin nhắn:", err);
+                        addSystemMessage("Không thể gửi tin nhắn. Vui lòng thử lại.", true);
+                    }
+                }
+            }
+
+            // Thêm tin nhắn vào chat box
+            function addMessage(user, message, timestamp, isOwnMessage) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `tunephere-message ${isOwnMessage ? 'own-message' : ''}`;
+                messageDiv.innerHTML = `
+                    <div class="tunephere-message-sender">${user}</div>
+                    <div class="tunephere-message-content">${message}</div>
+                    <div class="tunephere-message-time">${new Date(timestamp).toLocaleTimeString()}</div>
+                `;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Thêm tin nhắn hệ thống
+            function addSystemMessage(message, isError = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'tunephere-system-message';
+                messageDiv.innerHTML = `
+                    <div class="tunephere-system-content ${isError ? 'tunephere-system-error' : ''}">
+                        ${message}
+                    </div>
+                `;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Sự kiện click nút gửi
+            sendButton.addEventListener('click', sendMessage);
+
+            // Sự kiện nhấn Enter
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Khởi động kết nối
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            startConnection();
+        });
+    </script>
+}

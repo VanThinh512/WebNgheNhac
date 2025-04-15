@@ -1,0 +1,128 @@
+@model TunePhere.Models.Artists
+
+@{
+    ViewData["Title"] = "Đăng ký trở thành nghệ sĩ";
+}
+
+<link rel="stylesheet" href="~/css/register-artist.css" asp-append-version="true" />
+
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="create-header position-relative" style="height: 200px;">
+        <div class="position-absolute w-100 h-100" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(13, 13, 13, 0.9));">
+            <div class="h-100 d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <span class="header-label mb-2">ĐĂNG KÝ</span>
+                    <h1 class="display-5 fw-bold text-white text-shadow text-glow mt-3">Trở Thành Nghệ Sĩ</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="artist-registration">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="registration-card">
+                        <div class="card-body p-4">
+                            @if (!ViewData.ModelState.IsValid)
+                            {
+                                <div class="alert alert-danger">
+                                    <ul>
+                                        @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                        {
+                                            <li>@modelError.ErrorMessage</li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+
+                            <form asp-action="Register" method="post" enctype="multipart/form-data">
+                                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+
+                                <div class="mb-4">
+                                    <label asp-for="ArtistName" class="form-label">Tên nghệ danh</label>
+                                    <input asp-for="ArtistName" class="form-control" placeholder="Nhập tên nghệ danh của bạn" required />
+                                    <span asp-validation-for="ArtistName" class="validation-message"></span>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label asp-for="Bio" class="form-label">Tiểu sử</label>
+                                    <textarea asp-for="Bio" class="form-control" rows="4"
+                                              placeholder="Giới thiệu về bản thân và sự nghiệp âm nhạc của bạn"></textarea>
+                                    <span asp-validation-for="Bio" class="validation-message"></span>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Ảnh đại diện</label>
+                                        <div class="file-upload">
+                                            <div class="upload-btn w-100">
+                                                <i class="fas fa-cloud-upload-alt me-2"></i>
+                                                Chọn ảnh đại diện
+                                            </div>
+                                            <input type="file" id="ArtistImage" name="ArtistImage"
+                                                   class="form-control" accept="image/*"
+                                                   onchange="previewImage(this, 'imagePreview')" />
+                                        </div>
+                                        <div id="imagePreview" class="image-preview" style="display: none;">
+                                            <img src="" alt="Ảnh đại diện" class="img-fluid" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Ảnh bìa</label>
+                                        <div class="file-upload">
+                                            <div class="upload-btn w-100">
+                                                <i class="fas fa-cloud-upload-alt me-2"></i>
+                                                Chọn ảnh bìa
+                                            </div>
+                                            <input type="file" id="CoverImage" name="CoverImage"
+                                                   class="form-control" accept="image/*"
+                                                   onchange="previewImage(this, 'coverPreview')" />
+                                        </div>
+                                        <div id="coverPreview" class="image-preview" style="display: none;">
+                                            <img src="" alt="Ảnh bìa" class="img-fluid" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mt-5">
+                                    <button type="submit" class="btn-register">
+                                        <i class="fas fa-music me-2"></i>
+                                        Đăng ký trở thành nghệ sĩ
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        function previewImage(input, previewId) {
+            var preview = document.getElementById(previewId);
+            var previewImg = preview.querySelector('img');
+
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                previewImg.src = '';
+                preview.style.display = 'none';
+            }
+        }
+    </script>
+} 

@@ -1,0 +1,116 @@
+@model TunePhere.Models.Artists
+
+@{
+    ViewData["Title"] = "Bảng điều khiển nghệ sĩ";
+}
+
+<link rel="stylesheet" href="~/css/dashboard.css">
+
+<div class="artist-dashboard">
+    <div class="dashboard-header">
+        <div class="artist-info">
+            <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/default-avatar.jpg" : Model.ImageUrl)"
+                 alt="@Model.ArtistName"
+                 class="artist-avatar">
+            <div class="artist-details">
+                <h1>@Model.ArtistName</h1>
+                <p>Nghệ sĩ</p>
+            </div>
+        </div>
+        <div class="dashboard-actions">
+            <button class="action-button primary-button" onclick="location.href='@Url.Action("Create", "Songs")'">
+                <i class="fas fa-plus"></i>
+                Tải bài hát lên
+            </button>
+            <button class="action-button secondary-button" onclick="location.href='@Url.Action("Create", "Albums")'">
+                <i class="fas fa-compact-disc"></i>
+                Tạo album mới
+            </button>
+            <button class="action-button secondary-button" onclick="location.href='@Url.Action("Edit", "Artists")'">
+                <i class="fas fa-edit"></i>
+                Chỉnh sửa thông tin
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <i class="fas fa-music neon-icon"></i>
+            <div class="stat-info">
+                <h3>Bài hát</h3>
+                <p class="neon-text">@Model.Songs.Count()</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-compact-disc neon-icon"></i>
+            <div class="stat-info">
+                <h3>Album</h3>
+                <p class="neon-text">@Model.Albums.Count()</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-heart neon-icon"></i>
+            <div class="stat-info">
+                <h3>Lượt thích</h3>
+                <p class="neon-text">@Model.Songs.Sum(s => s.LikeCount)</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-play neon-icon"></i>
+            <div class="stat-info">
+                <h3>Lượt nghe</h3>
+                <p class="neon-text">@Model.Songs.Sum(s => s.PlayCount)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title">Bài hát mới nhất</h2>
+        <div class="songs-list">
+            @foreach (var song in Model.Songs.OrderByDescending(s => s.UploadDate).Take(5))
+            {
+                <div class="song-item">
+                    <div class="song-cover">
+                        <img src="@song.ImageUrl" alt="@song.Title" />
+                    </div>
+                    <div class="song-info">
+                        <h5 class="song-title">@song.Title</h5>
+                        <div class="song-meta">
+                            <span>@song.Genre</span>
+                            <span>•</span>
+                            <span>@song.Duration.ToString(@"mm\:ss")</span>
+                        </div>
+                    </div>
+                    <div class="song-stats">
+                        <span><i class="fas fa-play"></i> @song.PlayCount</span>
+                        <span><i class="fas fa-heart"></i> @song.LikeCount</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title">Album của bạn</h2>
+        <div class="songs-list">
+            @foreach (var album in Model.Albums.OrderByDescending(a => a.ReleaseDate).Take(5))
+            {
+                <div class="song-item">
+                    <div class="song-cover">
+                        <img src="@album.ImageUrl" alt="@album.AlbumName" />
+                    </div>
+                    <div class="song-info">
+                        <h5 class="song-title">@album.AlbumName</h5>
+                        <div class="song-meta">
+                            <span>@album.Songs.Count() bài hát</span>
+                        </div>
+                    </div>
+                    <div class="song-stats">
+                        <span><i class="fas fa-play"></i> @album.Songs.Sum(s => s.PlayCount)</span>
+                        <span><i class="fas fa-heart"></i> @album.Songs.Sum(s => s.LikeCount)</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
