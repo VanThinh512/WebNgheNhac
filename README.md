@@ -1,7 +1,7 @@
 # 🎵 TunePhere
 
 TunePhere is an open source music listening platform team project developed by [LeNhan18][TanPham2412][VanThinh512][CuongManhLe230104]
-
+This web use C# in visual studio, ASP.NET Core, Code First to create database (SQL Server) method
 ---
 
 ## 🚀 Clone Project
